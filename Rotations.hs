@@ -25,7 +25,7 @@ rotateRand ls = do
 
 rotatesRand :: RandomGen g => [a] -> Rand g [a]
 rotatesRand ls = do
-  num <- getRandomR (0, length ls `div` 3)
+  num <- getRandomR (0, length ls `div` 2)
   foldM (\l _ -> rotateRand l) ls [0..num]
 
 rotateNested :: RandomGen g => [[a]] -> Rand g [[a]]
@@ -37,3 +37,9 @@ rotateChapter :: RandomGen g => [[[String]]] -> Rand g [[[String]]]
 rotateChapter cs = do
   cs' <- rotatesRand cs
   mapM rotateNested cs'
+
+rotateChapterWithTitle :: RandomGen g => [(String,[[String]])] -> Rand g [(String,[[String]])]
+rotateChapterWithTitle cs = do
+  (ts,cs') <- unzip `liftM` rotatesRand cs
+  cs'' <- mapM rotateNested cs'
+  return $ zip ts cs''

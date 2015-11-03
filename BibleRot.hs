@@ -1,4 +1,6 @@
 import Rotations
+import Data.List
+import Control.Monad.Random
 
 {- 
    This is an example of using rotations to modify text based off of the king james version of the bible from Gutenberg
@@ -62,5 +64,17 @@ parseBible s = let cs = breakIntoChapters s
                    tps = map breakChapter cs
                    tpps = map (\(t,c) -> (t,breakParagraph c)) tps
                in map (\(t,ps) -> (t, map breakSentences ps)) tpps
-                   
 
+flattenBible :: [(String,[[String]])] -> String
+flattenBible b = concat (map flattenChapter b)
+
+flattenChapter (t,ps) = t ++ endOfLine ++ endOfLine ++ endOfLine ++ (concat $ map flattenParagraph ps)
+
+flattenParagraph p = concat $ intersperse "\r\n" p
+                   
+rotateBible :: IO ()
+rotateBible = do
+  s <- readFile "kjv10.txt"
+  let b = parseBible s
+  b' <- evalRandIO $ rotateChapterWithTitle b
+  writeFile "rotatedBible2.txt" (flattenBible b')
