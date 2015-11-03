@@ -8,11 +8,12 @@ import Rotations
    It'd probably be easiest to do something with parsec
 -}
 
-
+{- 
 import Text.Parsec
 import Text.Parsec.Combinator
 import Text.Parsec.Char
 import Text.Parsec.String
+-}
 
 {- 
    The basic layout is as follows:
@@ -23,58 +24,43 @@ import Text.Parsec.String
   
 -}
 
-book = many1 (try chapter)
+{- we'll assume that a "lines" has already performed on the string -}
 
-title :: Parser String
-title = do
-  ss <- many1 (alphaNum <|> oneOf " :,;")
-  endOfLine
-  return ss
+endOfLine :: String
+endOfLine = "\r\n"
 
-chapter = do
-  t <- title
-  sequence $ replicate 2 endOfLine
-  ps <- many1 (try paragraph)
-  sequence $ replicate 4 endOfLine
-  return (t,ps)
+breakIntoChapters :: String -> [String]
+breakIntoChapters = breakBySubstring $ concat $ (replicate 5 endOfLine)
 
-paragraph = do
-  ss <- endBy1 (try sentence) (oneOf ".!?")
-  endOfLine
-  return ss
+breakChapter :: String -> (String,String)
+breakChapter s = let cs = breakBySubstring (concat (replicate 3 endOfLine)) s
+                 in (cs !! 0, cs !! 1)
 
-sentence = many sentenceChar
-   where sentenceChar = alphaNum <|> oneOf " :,;-()'" <|> endOfLine
+breakParagraph :: String -> [String]
+breakParagraph = breakBySubstring $ concat (replicate 2 endOfLine)
 
-{- 
-chapters = sepBy aChapter betwixt
-    where betwixt = sequence $ replicate 6 endOfLine
+breakBySubstring :: Eq a => [a] -> [a] -> [[a]]
+breakBySubstring sub l = breakBySubstring' l sub []
 
-aChapter = do
-  t <- sentence
-  sequence $ replicate 3 endOfLine
-  ps <- paragraphs
-  return $ (t,ps)
+breakBySubstring' :: Eq a => [a] -> [a] -> [[a]] -> [[a]]
+breakBySubstring' [] sub accum = (reverse $ map reverse $ dropWhile null accum)
+breakBySubstring' (x:xs) sub accum = if take (length sub) (x:xs) == sub 
+                                     then breakBySubstring' (drop (length sub) (x:xs)) sub ([]:accum)
+                                     else breakBySubstring' xs sub (addFirst x accum)
+addFirst x [] = [[x]]
+addFirst x (l : ls) = (x:l) : ls
 
-paragraphs = sepBy paragraph betwixt
-    where betwixt = sequence $ replicate 2 endOfLine
+breakSentences s = breakSentences' s []
+                     
+breakSentences' [] acc = (reverse acc)
+breakSentences' xs@(x:xs') acc = case break (\c -> c `elem` ".?!") xs of
+                                   (left,r:right) -> breakSentences' right ((left++[r]):acc)
+                                   (left,[]) -> breakSentences' [] (left:acc)
 
-paragraph = sepBy (try sentence) ((try (punctuation >> return ())) <|> (try (lookAhead versenum >> return ())))
+parseBible :: String -> [(String,[[String]])]
+parseBible s = let cs = breakIntoChapters s
+                   tps = map breakChapter cs
+                   tpps = map (\(t,c) -> (t,breakParagraph c)) tps
+               in map (\(t,ps) -> (t, map breakSentences ps)) tpps
+                   
 
-sentence :: Parser String
-sentence = many1 $ alphaNum <|> sentenceSpecials <|> aux
-    where aux = do
-            e <- endOfLine
-            notFollowedBy endOfLine
-            return e
-sentenceSpecials = oneOf " ,;:'()-"
-
-
-punctuation = oneOf ".?!"
-
-versenum = do 
-  many1 digit 
-  char ':'
-  many1 digit
-
--}
