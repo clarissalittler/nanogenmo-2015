@@ -1,3 +1,5 @@
+module BibleRot where
+
 import Rotations
 import Data.List
 import Control.Monad.Random
