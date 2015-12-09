@@ -6,6 +6,7 @@ import Data.Maybe
 import Control.Monad.Random
 import Data.Char
 import Data.List
+import Control.Monad
 
 import BibleRot
 
@@ -48,3 +49,10 @@ dropLast = reverse . tail . reverse
 groupsToFrequencies :: (Ord a , Eq a) => [[a]] -> Map [a] [(a, Rational)]
 groupsToFrequencies ts = let tGroups = nub $ map dropLast ts
                          in M.fromList $ map (\ x -> (x, prefixToFrequencies x ts)) tGroups
+
+verseGenerator :: Int -> IO String
+verseGenerator n = do
+  s <- readFile "kjv10.txt"
+  let strs = toWords $ take 1000000 s
+      tab = groupsToFrequencies $ nGroup 3 strs
+  liftM concat $ evalRandIO $ generateStrings n ["the", "lord"] tab
