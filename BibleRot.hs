@@ -74,9 +74,9 @@ flattenChapter (t,ps) = t ++ endOfLine ++ endOfLine ++ endOfLine ++ (concat $ ma
 
 flattenParagraph p = concat $ intersperse "\r\n" p
                    
-rotateBible :: IO ()
-rotateBible = do
-  s <- readFile "kjv10.txt"
+rotateBible :: String -> String -> IO ()
+rotateBible f1 f2 = do
+  s <- readFile f1
   let b = parseBible s
   b' <- evalRandIO $ rotateChapterWithTitle b
-  writeFile "rotatedBible2.txt" (flattenBible b')
+  writeFile f2 (flattenBible b')
